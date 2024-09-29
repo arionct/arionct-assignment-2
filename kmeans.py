@@ -46,3 +46,33 @@ class KMeans:
   def set_centroids(self, centroids):
     self.centroids = np.array(centroids)
 
+  def fit(self, X):
+    # Initialize centroids
+    if self.init_method == 'random':
+      self.centroids = self._initialize_random(X)
+    elif self.init_method == 'farthest':
+      self.centroids = self._initialize_farthest(X)
+    elif self.init_method == 'kmeans++':
+      self.centroids = self._initialize_kmeanspp(X)
+    elif self.init_method == 'manual':
+      if self.centroids is None:
+        raise ValueError("Centroids must be set manually before calling fit.")
+    else:
+      raise ValueError(f"Unknown initialization method '{self.init_method}'")
+    
+    for iteration in range(self.max_iter):
+      # Assignment Step
+      distances = np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
+      labels = np.argmin(distances, axis=1)
+      
+      # Update Step
+      new_centroids = np.array([X[labels == i].mean(axis=0) if len(X[labels == i]) > 0 else self.centroids[i] for i in range(self.n_clusters)])
+      
+      # Convergence Check
+      if np.allclose(self.centroids, new_centroids, atol=self.tol):
+        print(f"Converged at iteration {iteration}")
+        break
+      self.centroids = new_centroids
+    
+    self.labels = labels
+
