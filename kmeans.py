@@ -76,3 +76,28 @@ class KMeans:
     
     self.labels = labels
 
+def generate_dataset(num_points=300, num_clusters=4, cluster_std=0.60, random_state=0):
+  from sklearn.datasets import make_blobs
+  X, y_true = make_blobs(n_samples=num_points, centers=num_clusters, cluster_std=cluster_std, random_state=random_state)
+  return X
+
+if __name__ == '__main__':
+  import matplotlib.pyplot as plt
+
+  # Generate sample data
+  X = generate_dataset()
+
+  # List of initialization methods to test
+  init_methods = ['random', 'farthest', 'kmeans++']
+
+  for method in init_methods:
+    # Instantiate KMeans with the current initialization method
+    kmeans = KMeans(n_clusters=4, init_method=method)
+    kmeans.fit(X)
+
+    # Plot the clustered data
+    plt.scatter(X[:, 0], X[:, 1], c=kmeans.labels, s=30, cmap='viridis', label='Data Points')
+    plt.scatter(kmeans.centroids[:, 0], kmeans.centroids[:, 1], c='red', s=200, alpha=0.5, label='Centroids')
+    plt.title(f'KMeans Clustering with {method} Initialization')
+    plt.legend()
+    plt.show()
