@@ -1,7 +1,7 @@
 import numpy as np
 
 class KMeans:
-  def __init__(self, n_clusters=3, init_method='random', max_iter=300, tol=1e-4):
+  def __init__(self, n_clusters=3, init_method='random', max_iter=300, tol=1e-10):
     self.n_clusters = n_clusters
     self.init_method = init_method
     self.max_iter = max_iter
@@ -46,7 +46,7 @@ class KMeans:
   def set_centroids(self, centroids):
     self.centroids = np.array(centroids)
 
-  def fit(self, X):
+  def initialize_centroids(self, X):
     # Initialize centroids
     if self.init_method == 'random':
       self.centroids = self._initialize_random(X)
@@ -59,7 +59,9 @@ class KMeans:
         raise ValueError("Centroids must be set manually before calling fit.")
     else:
       raise ValueError(f"Unknown initialization method '{self.init_method}'")
-    
+
+  def fit(self, X):
+    self.initialize_centroids(X)
     for iteration in range(self.max_iter):
       # Assignment Step
       distances = np.linalg.norm(X[:, np.newaxis] - self.centroids, axis=2)
