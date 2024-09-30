@@ -2,4 +2,3 @@ dash
 numpy
 plotly
 scikit-learn
-matplotlib (optional: for visualization when running kmeans.py directly)
