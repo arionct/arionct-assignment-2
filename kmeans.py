@@ -72,7 +72,6 @@ class KMeans:
       
       # Convergence Check
       if np.allclose(self.centroids, new_centroids, atol=self.tol):
-        print(f"Converged at iteration {iteration}")
         break
       self.centroids = new_centroids
     

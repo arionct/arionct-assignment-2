@@ -30,6 +30,17 @@ app.layout = html.Div([
       clearable=False
     ),
   ], style={'width': '48%', 'display': 'inline-block'}),
+
+  html.Div([
+    html.Label("Number of Clusters:"),
+    dcc.Input(
+      id='num-clusters-input',
+      type='number',
+      value=4,  # Default value
+      min=1,    # Minimum number of clusters
+      step=1,   # Increment step
+    ),
+  ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
   
   html.Div([
     html.Button('Generate New Dataset', id='generate-dataset-button', n_clicks=0),
@@ -57,12 +68,15 @@ app.layout = html.Div([
 # Callback to generate new dataset
 @app.callback(
   Output('dataset', 'data'),
-  Input('generate-dataset-button', 'n_clicks')
+  Input('generate-dataset-button', 'n_clicks'),
+  State('num-clusters-input', 'value')
 )
-def generate_dataset(n_clicks):
+def generate_dataset(n_clicks, n_clusters):
+  if n_clusters is None or n_clusters < 1:
+    n_clusters = 1
   # Generate a new random dataset
   X = []
-  for _ in range(4):
+  for _ in range(n_clusters):
     center = np.random.uniform(-10, 10, 2)
     points = center + np.random.randn(50, 2)
     X.append(points)
@@ -75,17 +89,18 @@ def generate_dataset(n_clicks):
   Output('kmeans-state', 'data'),
   Output('current-step', 'data'),
   Output('manual-centroids', 'data'),
+  Input('dataset', 'data'),
   Input('init-method-dropdown', 'value'),
+  Input('num-clusters-input', 'value'),
   Input('reset-button', 'n_clicks'),
   Input('step-button', 'n_clicks'),
   Input('run-button', 'n_clicks'),
   Input('cluster-graph', 'clickData'),
   State('kmeans-state', 'data'),
   State('current-step', 'data'),
-  State('dataset', 'data'),
   State('manual-centroids', 'data')
 )
-def update_kmeans(init_method, reset_n_clicks, step_n_clicks, run_n_clicks, clickData, kmeans_state, current_step, dataset, manual_centroids):
+def update_kmeans(dataset, init_method, n_clusters, reset_n_clicks, step_n_clicks, run_n_clicks, clickData, kmeans_state, current_step, manual_centroids):
   ctx = dash.callback_context
   if not ctx.triggered:
     return dash.no_update, dash.no_update, dash.no_update
@@ -95,30 +110,43 @@ def update_kmeans(init_method, reset_n_clicks, step_n_clicks, run_n_clicks, clic
     return dash.no_update, dash.no_update, dash.no_update
   X = np.array(dataset)
 
-  if trigger_id == 'init-method-dropdown' or trigger_id == 'reset-button':
+  if n_clusters is None or n_clusters < 1:
+    n_clusters = 1
+
+  if trigger_id == 'dataset':
+    kmeans_state = {
+      'centroids': [],
+      'labels': [-1]*len(X),
+      'iteration': 0,
+      'n_clusters': n_clusters
+    }
+    current_step = 0
+    manual_centroids = []
+    return kmeans_state, current_step, manual_centroids
+
+  elif trigger_id == 'init-method-dropdown' or trigger_id == 'reset-button':
     # Initialize KMeans
-    kmeans = KMeans(n_clusters=4, init_method=init_method)
+    kmeans = KMeans(n_clusters=n_clusters, init_method=init_method)
     if init_method == 'manual':
-      if manual_centroids:
+      if manual_centroids and len(manual_centroids) == n_clusters:
         kmeans.set_centroids(np.array(manual_centroids))
-        # Optionally, perform initial assignment
-        distances = np.linalg.norm(X[:, np.newaxis] - kmeans.centroids, axis=2)
-        labels = np.argmin(distances, axis=1)
-        kmeans.labels = labels
+        kmeans.labels = np.full(len(X), -1)
       else:
         # Centroids are not set yet; avoid calling fit
         kmeans.centroids = None
-        kmeans.labels = np.zeros(len(X), dtype=int) - 1  # No labels assigned yet
+        kmeans.labels = np.full(len(X), -1)
     else:
       kmeans.initialize_centroids(X)
       kmeans.labels = np.full(len(X), -1)
     kmeans_state = {
       'centroids': kmeans.centroids.tolist() if kmeans.centroids is not None else [],
       'labels': kmeans.labels.tolist(),
-      'iteration': 0
+      'iteration': 0,
+      'n_clusters': n_clusters
     }
     current_step = 0
-    manual_centroids = []
+    if init_method != 'manual':
+      manual_centroids = []
     return kmeans_state, current_step, manual_centroids
 
   elif trigger_id == 'cluster-graph' and init_method == 'manual':
@@ -129,14 +157,15 @@ def update_kmeans(init_method, reset_n_clicks, step_n_clicks, run_n_clicks, clic
     new_centroid = [point['x'], point['y']]
     manual_centroids.append(new_centroid)
     # Limit the number of centroids to the number of clusters
-    if len(manual_centroids) > kmeans_state.get('n_clusters', 4):
-      manual_centroids = manual_centroids[-kmeans_state.get('n_clusters', 4):]
+    if len(manual_centroids) > n_clusters:
+      manual_centroids = manual_centroids[-n_clusters:]
     # Update centroids in kmeans_state
     kmeans_state['centroids'] = manual_centroids
     centroids = np.array(manual_centroids)
     distances = np.linalg.norm(X[:, np.newaxis] - centroids, axis=2)
     labels = np.argmin(distances, axis=1)
     kmeans_state['labels'] = labels.tolist()
+    kmeans_state['n_clusters'] = n_clusters
     return kmeans_state, current_step, manual_centroids
 
   elif trigger_id == 'step-button':
@@ -199,6 +228,7 @@ def update_graph(dataset, kmeans_state):
   X = np.array(dataset)
   centroids = np.array(kmeans_state['centroids'])
   labels = np.array(kmeans_state['labels'])
+  n_clusters = kmeans_state.get('n_clusters', 1)
 
   # Create scatter plots for each cluster
   data = []
