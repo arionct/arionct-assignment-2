@@ -16,48 +16,53 @@ app.server.host = '0.0.0.0'
 # App layout
 app.layout = html.Div([
   html.H1("KMeans Clustering Visualization"),
-  html.Div([
-    html.Label("Initialization Method:"),
-    dcc.Dropdown(
-      id='init-method-dropdown',
-      options=[
-        {'label': 'Random', 'value': 'random'},
-        {'label': 'Farthest First', 'value': 'farthest'},
-        {'label': 'KMeans++', 'value': 'kmeans++'},
-        {'label': 'Manual', 'value': 'manual'}
-      ],
-      value='random',
-      clearable=False
-    ),
-  ], style={'width': '48%', 'display': 'inline-block'}),
 
   html.Div([
-    html.Label("Number of Clusters:"),
-    dcc.Input(
-      id='num-clusters-input',
-      type='number',
-      value=4,  # Default value
-      min=1,    # Minimum number of clusters
-      step=1,   # Increment step
-    ),
-  ], style={'width': '48%', 'display': 'inline-block', 'verticalAlign': 'top'}),
-  
+    html.Div([
+      html.Label("Initialization Method:"),
+      dcc.Dropdown(
+        id='init-method-dropdown',
+        options=[
+          {'label': 'Random', 'value': 'random'},
+          {'label': 'Farthest First', 'value': 'farthest'},
+          {'label': 'KMeans++', 'value': 'kmeans++'},
+          {'label': 'Manual', 'value': 'manual'}
+        ],
+        value='random',
+        clearable=False
+        ),
+      ], className='control-element'),
+
+      html.Div([
+        html.Label("Number of Clusters: "),
+        dcc.Input(
+          id='num-clusters-input',
+          type='number',
+          value=4,  # Default value
+          min=1,    # Minimum number of clusters
+          step=1,   # Increment step
+        ),
+      ], className='control-element'),
+
+  ], className='controls'),
+
   html.Div([
-    html.Button('Generate New Dataset', id='generate-dataset-button', n_clicks=0),
-    html.Button('Reset Algorithm', id='reset-button', n_clicks=0),
-  ]),
-  
+    html.Button('Generate new dataset', id='generate-dataset-button', n_clicks=0),
+    html.Button('Reset algorithm', id='reset-button', n_clicks=0),
+  ], className='button-group'),
+
   html.Div([
-    html.Button('Step', id='step-button', n_clicks=0),
-    html.Button('Run to Convergence', id='run-button', n_clicks=0),
-  ]),
-  
+    html.Button('Step through KMeans', id='step-button', n_clicks=0),
+    html.Button('Run to convergence', id='run-button', n_clicks=0),
+  ], className='button-group'),
+
   dcc.Graph(
     id='cluster-graph',
     style={'height': '600px'},
+    className='graph',
     clickData=None,
   ),
-  
+
   # Store data in hidden divs
   dcc.Store(id='dataset'),
   dcc.Store(id='kmeans-state'),
